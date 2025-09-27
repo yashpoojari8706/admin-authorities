@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import type { SOSReport } from "@/lib/mock-data"
+import type { SOSReport } from "@/lib/supabase"
 import { MapPin, Clock, User, Phone, Mail, Flag, Camera, AlertTriangle, CheckCircle, XCircle } from "lucide-react"
 import { useState } from "react"
 import Image from "next/image"
@@ -53,8 +53,9 @@ export function ReportDetailsModal({ report, isOpen, onClose, onStatusUpdate }: 
     }
   }
 
-  const formatTime = (date: Date) => {
-    return date.toLocaleString()
+  const formatTime = (date: Date | string) => {
+    const dateObj = date instanceof Date ? date : new Date(date)
+    return dateObj.toLocaleString()
   }
 
   const handleStatusUpdate = () => {
@@ -99,19 +100,19 @@ export function ReportDetailsModal({ report, isOpen, onClose, onStatusUpdate }: 
               <div className="space-y-3 bg-gray-50 p-4 rounded-lg">
                 <div className="flex items-center gap-2">
                   <User className="h-4 w-4 text-muted-foreground" />
-                  <span className="font-medium">{report.user.name}</span>
+                  <span className="font-medium">{report.user_name}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Phone className="h-4 w-4 text-muted-foreground" />
-                  <span>{report.user.phone}</span>
+                  <span>{report.user_phone}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Mail className="h-4 w-4 text-muted-foreground" />
-                  <span>{report.user.email}</span>
+                  <span>{report.user_email}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Flag className="h-4 w-4 text-muted-foreground" />
-                  <span>{report.user.nationality}</span>
+                  <span>{report.user_nationality}</span>
                 </div>
               </div>
             </div>
@@ -126,15 +127,15 @@ export function ReportDetailsModal({ report, isOpen, onClose, onStatusUpdate }: 
                 <div className="flex items-start gap-2">
                   <MapPin className="h-4 w-4 text-muted-foreground mt-0.5" />
                   <div>
-                    <p className="font-medium">{report.location.address}</p>
-                    {report.location.landmark && (
-                      <p className="text-sm text-muted-foreground">{report.location.landmark}</p>
+                    <p className="font-medium">{report.address}</p>
+                    {report.landmark && (
+                      <p className="text-sm text-muted-foreground">{report.landmark}</p>
                     )}
                   </div>
                 </div>
                 <div className="text-sm text-muted-foreground">
                   <p>
-                    Coordinates: {report.location.latitude}, {report.location.longitude}
+                    Coordinates: {report.latitude}, {report.longitude}
                   </p>
                 </div>
               </div>
@@ -151,23 +152,23 @@ export function ReportDetailsModal({ report, isOpen, onClose, onStatusUpdate }: 
               <div>
                 <span className="font-medium">Type: </span>
                 <Badge variant="outline" className="capitalize">
-                  {report.incident.type} Emergency
+                  {report.incident_type} Emergency
                 </Badge>
               </div>
               <div>
                 <span className="font-medium">Description:</span>
-                <p className="mt-1 text-sm">{report.incident.description}</p>
+                <p className="mt-1 text-sm">{report.incident_description}</p>
               </div>
 
               {/* Photos */}
-              {report.incident.photos.length > 0 && (
+              {report.photos.length > 0 && (
                 <div>
                   <div className="flex items-center gap-2 mb-2">
                     <Camera className="h-4 w-4" />
-                    <span className="font-medium">Photos ({report.incident.photos.length})</span>
+                    <span className="font-medium">Photos ({report.photos.length})</span>
                   </div>
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                    {report.incident.photos.map((photo, index) => (
+                    {report.photos.map((photo: string, index: number) => (
                       <div key={index} className="relative aspect-square bg-gray-200 rounded-lg overflow-hidden">
                         <Image
                           src={photo || "/placeholder.svg"}
@@ -187,27 +188,27 @@ export function ReportDetailsModal({ report, isOpen, onClose, onStatusUpdate }: 
           <div className="space-y-4">
             <h3 className="font-semibold text-lg">Response Status</h3>
             <div className="bg-gray-50 p-4 rounded-lg space-y-3">
-              {report.response.assignedTo ? (
+              {report.assigned_unit ? (
                 <div>
                   <span className="font-medium">Assigned to: </span>
-                  <Badge variant="outline">{report.response.assignedTo}</Badge>
+                  <Badge variant="outline">{report.assigned_unit}</Badge>
                 </div>
               ) : (
                 <div className="text-red-600 font-medium">⚠ Awaiting assignment</div>
               )}
 
-              {report.response.estimatedArrival && (
+              {report.estimated_arrival && (
                 <div>
                   <span className="font-medium">ETA: </span>
-                  <span>{formatTime(report.response.estimatedArrival)}</span>
+                  <span>{formatTime(report.estimated_arrival)}</span>
                 </div>
               )}
 
-              {report.response.notes.length > 0 && (
+              {report.notes.length > 0 && (
                 <div>
                   <span className="font-medium">Response Notes:</span>
                   <ul className="mt-1 space-y-1">
-                    {report.response.notes.map((note, index) => (
+                    {report.notes.map((note: string, index: number) => (
                       <li key={index} className="text-sm flex items-start gap-2">
                         <span className="text-muted-foreground">•</span>
                         {note}

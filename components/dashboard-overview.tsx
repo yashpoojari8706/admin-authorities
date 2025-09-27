@@ -3,7 +3,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { mockSOSReports } from "@/lib/mock-data"
+import { useRealtimeReports } from "@/lib/hooks/useRealtimeReports"
 import { MapPin, Clock, User, AlertTriangle, Eye } from "lucide-react"
 import { ReportDetailsModal } from "@/components/report-details-modal"
 import { ManualAlertModal } from "@/components/manual-alert-modal"
@@ -11,7 +11,8 @@ import { ResponseUnitManagementModal } from "@/components/response-unit-manageme
 import { useState } from "react"
 
 export function DashboardOverview() {
-  const [selectedReport, setSelectedReport] = useState(null)
+  const { reports: realtimeReports, loading } = useRealtimeReports(5)
+  const [selectedReport, setSelectedReport] = useState<any>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isManualAlertOpen, setIsManualAlertOpen] = useState(false)
   const [isUnitManagementOpen, setIsUnitManagementOpen] = useState(false)
@@ -66,8 +67,8 @@ export function DashboardOverview() {
     },
   ])
 
-  const activeReports = mockSOSReports.filter(
-    (report) => report.status === "pending" || report.status === "in-progress",
+  const activeReports = realtimeReports.filter(
+    (report: any) => report.status === "pending" || report.status === "in-progress",
   )
 
   const getPriorityColor = (priority: string) => {
@@ -113,34 +114,34 @@ export function DashboardOverview() {
     }
   }
 
-  const handleViewDetails = (report) => {
+  const handleViewDetails = (report: any) => {
     setSelectedReport(report)
     setIsModalOpen(true)
   }
 
-  const handleStatusUpdate = (reportId, status, notes) => {
+  const handleStatusUpdate = (reportId: any, status: any, notes: any) => {
     console.log("[v0] Status update:", { reportId, status, notes })
     setIsModalOpen(false)
   }
 
-  const handleCreateManualAlert = (alertData) => {
+  const handleCreateManualAlert = (alertData: any) => {
     console.log("[v0] Manual alert created:", alertData)
     // In a real app, this would save to database
   }
 
-  const handleDispatchUnit = (unitId, reportId, instructions) => {
+  const handleDispatchUnit = (unitId: any, reportId: any, instructions: any) => {
     console.log("[v0] Dispatching unit:", { unitId, reportId, instructions })
-    setResponseUnits((prev) =>
-      prev.map((unit) =>
+    setResponseUnits((prev: any) =>
+      prev.map((unit: any) =>
         unit.id === unitId ? { ...unit, status: "dispatched", assignedTo: reportId, lastUpdate: new Date() } : unit,
       ),
     )
   }
 
-  const handleUpdateUnitStatus = (unitId, status, location) => {
+  const handleUpdateUnitStatus = (unitId: any, status: any, location: any) => {
     console.log("[v0] Updating unit status:", { unitId, status, location })
-    setResponseUnits((prev) =>
-      prev.map((unit) => (unit.id === unitId ? { ...unit, status, location, lastUpdate: new Date() } : unit)),
+    setResponseUnits((prev: any) =>
+      prev.map((unit: any) => (unit.id === unitId ? { ...unit, status, location, lastUpdate: new Date() } : unit)),
     )
   }
 
@@ -178,7 +179,7 @@ export function DashboardOverview() {
                     </div>
                     <div className="flex items-center gap-2 text-xs text-muted-foreground">
                       <Clock className="h-3 w-3" />
-                      {formatTime(report.timestamp)}
+                      {formatTime(new Date(report.timestamp))}
                     </div>
                   </div>
 
@@ -186,30 +187,30 @@ export function DashboardOverview() {
                     <div className="flex items-center gap-2">
                       <User className="h-4 w-4 text-muted-foreground" />
                       <div>
-                        <p className="font-medium text-sm">{report.user.name}</p>
-                        <p className="text-xs text-muted-foreground">{report.user.nationality}</p>
+                        <p className="font-medium text-sm">{report.user_name}</p>
+                        <p className="text-xs text-muted-foreground">{report.user_nationality}</p>
                       </div>
                     </div>
 
                     <div className="flex items-center gap-2">
                       <MapPin className="h-4 w-4 text-muted-foreground" />
                       <div>
-                        <p className="text-sm">{report.location.address}</p>
-                        <p className="text-xs text-muted-foreground">{report.location.landmark}</p>
+                        <p className="text-sm">{report.address}</p>
+                        <p className="text-xs text-muted-foreground">{report.landmark}</p>
                       </div>
                     </div>
 
                     <div>
-                      <p className="text-sm font-medium capitalize">{report.incident.type} Emergency</p>
-                      <p className="text-xs text-muted-foreground line-clamp-2">{report.incident.description}</p>
+                      <p className="text-sm font-medium capitalize">{report.incident_type} Emergency</p>
+                      <p className="text-xs text-muted-foreground line-clamp-2">{report.incident_description}</p>
                     </div>
                   </div>
 
                   <div className="flex items-center justify-between">
                     <div className="text-xs text-muted-foreground">
-                      {report.response.assignedTo ? (
+                      {report.assigned_unit ? (
                         <span>
-                          Assigned to: <strong>{report.response.assignedTo}</strong>
+                          Assigned to: <strong>{report.assigned_unit}</strong>
                         </span>
                       ) : (
                         <span className="text-red-600">⚠ Awaiting assignment</span>

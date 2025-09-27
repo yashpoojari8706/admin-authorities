@@ -73,21 +73,22 @@ export function ManualAlertModal({ isOpen, onClose, onCreateAlert }: ManualAlert
 
   const handleSubmit = () => {
     const alertData = {
-      ...formData,
-      photos,
-      timestamp: new Date(),
-      status: "pending",
-      id: `POL-${Date.now().toString().slice(-6)}`,
+      title: `${formData.incidentType} Emergency`,
+      description: formData.description,
+      location: formData.location.address || `${formData.location.latitude}, ${formData.location.longitude}`,
+      priority: formData.priority,
       reportedBy: "Police Authority",
-      user: {
-        name: "Unknown Tourist",
-        phone: "N/A",
-        email: "N/A",
-        nationality: "Unknown",
-      },
+      assignedTo: formData.assignedTo,
+      photos,
     }
 
     console.log("[v0] Creating police manual alert:", alertData)
+    
+    // Dispatch custom event for manual alerts component
+    const event = new CustomEvent('newManualAlert', { detail: alertData })
+    window.dispatchEvent(event)
+    
+    // Also call the original callback for backward compatibility
     onCreateAlert(alertData)
 
     // Reset form

@@ -1,10 +1,37 @@
+"use client"
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { dashboardStats } from "@/lib/mock-data"
+import { useRealtimeDashboardStats } from "@/lib/hooks/useRealtimeReports"
 import { AlertTriangle, Clock, CheckCircle, Activity } from "lucide-react"
 
 export function StatsCards() {
-  const stats = [
+  const { stats: dashboardStats, loading, error } = useRealtimeDashboardStats()
+
+  if (loading) {
+    return <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      {[...Array(4)].map((_, i) => (
+        <div key={i} className="h-24 bg-gray-200 animate-pulse rounded-lg"></div>
+      ))}
+    </div>
+  }
+
+  if (error || !dashboardStats) {
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="col-span-full bg-red-50 border border-red-200 rounded-lg p-4">
+          <div className="text-center">
+            <div className="text-red-600 mb-2">⚠️ Unable to load dashboard statistics</div>
+            <p className="text-sm text-red-700">
+              Please ensure the database is set up by running the SQL setup script.
+            </p>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  const statsConfig = [
     {
       title: "Total Reports",
       value: dashboardStats.totalReports,
@@ -37,7 +64,7 @@ export function StatsCards() {
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-      {stats.map((stat, index) => {
+      {statsConfig.map((stat, index) => {
         const Icon = stat.icon
         return (
           <Card key={index} className="relative overflow-hidden">
@@ -48,7 +75,7 @@ export function StatsCards() {
             <CardContent>
               <div className="text-2xl font-bold text-foreground">{stat.value}</div>
               <p className="text-xs text-muted-foreground mt-1">{stat.description}</p>
-              {stat.title === "Active Emergencies" && stat.value > 0 && (
+              {stat.title === "Active Emergencies" && typeof stat.value === 'number' && stat.value > 0 && (
                 <Badge variant="destructive" className="mt-2 text-xs">
                   Urgent Action Required
                 </Badge>

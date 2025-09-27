@@ -1,6 +1,7 @@
 import { DashboardOverview } from "@/components/dashboard-overview"
 import { RecentReports } from "@/components/recent-reports"
 import { StatsCards } from "@/components/stats-cards"
+import { ManualAlerts } from "@/components/manual-alerts"
 import { Button } from "@/components/ui/button"
 import { ArrowRight, FileText, Activity } from "lucide-react"
 import Link from "next/link"
@@ -48,6 +49,9 @@ export default function AdminDashboard() {
         <div className="space-y-8">
           {/* Statistics Overview */}
           <StatsCards />
+
+          {/* Manual Alerts */}
+          <ManualAlerts />
 
           {/* Dashboard Overview */}
           <DashboardOverview />

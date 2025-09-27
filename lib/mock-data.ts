@@ -30,8 +30,8 @@ export interface SOSReport {
   incidentType?: string
 }
 
-// Mock SOS reports data
-export const mockSOSReports: SOSReport[] = [
+// Mock SOS reports data (deprecated - now using real Supabase data)
+export const mockSOSReports: any[] = [
   {
     id: "SOS-001",
     timestamp: new Date("2024-01-15T14:30:00Z"),

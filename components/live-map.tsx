@@ -3,9 +3,9 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Map, Maximize2, Filter, RefreshCw } from "lucide-react"
+import { Map, Maximize2, Filter, RefreshCw, MapPin, Navigation } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
-import { mockReports } from "@/lib/mock-data"
+import { useRealtimeReports } from "@/lib/hooks/useRealtimeReports"
 
 declare global {
   interface Window {
@@ -14,10 +14,37 @@ declare global {
 }
 
 export function LiveMap() {
+  const { reports: realtimeReports } = useRealtimeReports()
   const mapRef = useRef<HTMLDivElement>(null)
   const mapInstanceRef = useRef<any>(null)
   const [isMapLoaded, setIsMapLoaded] = useState(false)
   const [selectedFilter, setSelectedFilter] = useState<string>("all")
+  const [userLocation, setUserLocation] = useState<{lat: number, lng: number} | null>(null)
+  const [locationError, setLocationError] = useState<string | null>(null)
+
+  // Get user's current location
+  useEffect(() => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          setUserLocation({
+            lat: position.coords.latitude,
+            lng: position.coords.longitude
+          })
+          setLocationError(null)
+        },
+        (error) => {
+          console.error('Error getting location:', error)
+          setLocationError('Unable to get your location')
+          // Default to New York if location access is denied
+          setUserLocation({ lat: 40.7128, lng: -74.006 })
+        }
+      )
+    } else {
+      setLocationError('Geolocation not supported')
+      setUserLocation({ lat: 40.7128, lng: -74.006 })
+    }
+  }, [])
 
   useEffect(() => {
     const loadLeaflet = async () => {
@@ -44,8 +71,8 @@ export function LiveMap() {
   }, [])
 
   useEffect(() => {
-    if (isMapLoaded && mapRef.current && !mapInstanceRef.current) {
-      const map = window.L.map(mapRef.current).setView([40.7128, -74.006], 12)
+    if (isMapLoaded && mapRef.current && !mapInstanceRef.current && userLocation) {
+      const map = window.L.map(mapRef.current).setView([userLocation.lat, userLocation.lng], 12)
 
       // Add OpenStreetMap tiles
       window.L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
@@ -54,10 +81,27 @@ export function LiveMap() {
 
       mapInstanceRef.current = map
 
-      mockReports.forEach((report) => {
-        if (report.location.coordinates) {
-          const [lat, lng] = report.location.coordinates
+      // Add user's current location marker
+      const userMarker = window.L.circleMarker([userLocation.lat, userLocation.lng], {
+        radius: 10,
+        fillColor: "#3b82f6", // blue
+        color: "#ffffff",
+        weight: 3,
+        opacity: 1,
+        fillOpacity: 0.9,
+      }).addTo(map)
 
+      userMarker.bindPopup(`
+        <div class="p-2">
+          <h3 class="font-semibold text-sm">📍 Your Location</h3>
+          <p class="text-xs text-gray-600">Current Position</p>
+          <p class="text-xs">${userLocation.lat.toFixed(6)}, ${userLocation.lng.toFixed(6)}</p>
+        </div>
+      `)
+
+      // Add SOS reports from real data
+      realtimeReports.forEach((report: any) => {
+        if (report.latitude && report.longitude) {
           // Determine marker color based on priority
           let markerColor = "#3b82f6" // blue default
           if (report.priority === "critical")
@@ -67,7 +111,7 @@ export function LiveMap() {
           else if (report.priority === "medium") markerColor = "#ca8a04" // yellow
 
           // Create custom marker
-          const marker = window.L.circleMarker([lat, lng], {
+          const marker = window.L.circleMarker([report.latitude, report.longitude], {
             radius: 8,
             fillColor: markerColor,
             color: "#ffffff",
@@ -79,13 +123,14 @@ export function LiveMap() {
           // Add popup with report details
           marker.bindPopup(`
             <div class="p-2">
-              <h3 class="font-semibold text-sm">${report.incidentType}</h3>
-              <p class="text-xs text-gray-600 mb-1">${report.user.name}</p>
-              <p class="text-xs mb-2">${report.location.address}</p>
+              <h3 class="font-semibold text-sm">${report.incident_type} Emergency</h3>
+              <p class="text-xs text-gray-600 mb-1">${report.user_name}</p>
+              <p class="text-xs mb-2">${report.address}</p>
               <div class="flex items-center gap-1">
                 <span class="inline-block w-2 h-2 rounded-full" style="background-color: ${markerColor}"></span>
                 <span class="text-xs capitalize">${report.priority}</span>
               </div>
+              <p class="text-xs text-blue-600 mt-1">Status: ${report.status}</p>
             </div>
           `)
         }
@@ -124,11 +169,17 @@ export function LiveMap() {
         mapInstanceRef.current = null
       }
     }
-  }, [isMapLoaded])
+  }, [isMapLoaded, userLocation, realtimeReports])
 
   const refreshMap = () => {
     if (mapInstanceRef.current) {
       mapInstanceRef.current.invalidateSize()
+    }
+  }
+
+  const centerOnUserLocation = () => {
+    if (mapInstanceRef.current && userLocation) {
+      mapInstanceRef.current.setView([userLocation.lat, userLocation.lng], 15)
     }
   }
 
@@ -153,6 +204,10 @@ export function LiveMap() {
               <Filter className="h-4 w-4 mr-1" />
               {selectedFilter === "all" ? "All" : "Critical"}
             </Button>
+            <Button variant="outline" size="sm" onClick={centerOnUserLocation} disabled={!userLocation}>
+              <Navigation className="h-4 w-4 mr-1" />
+              My Location
+            </Button>
             <Button variant="outline" size="sm" onClick={refreshMap}>
               <RefreshCw className="h-4 w-4 mr-1" />
               Refresh
@@ -176,7 +231,21 @@ export function LiveMap() {
           )}
         </div>
 
+        {/* Location Status */}
+        {locationError && (
+          <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+            <div className="flex items-center gap-2 text-yellow-800">
+              <MapPin className="h-4 w-4" />
+              <span className="text-sm">{locationError}</span>
+            </div>
+          </div>
+        )}
+
         <div className="flex items-center justify-center gap-6 mt-4 text-xs">
+          <div className="flex items-center gap-2">
+            <div className="w-3 h-3 bg-blue-600 rounded-full border-2 border-white"></div>
+            <span>Your Location</span>
+          </div>
           <div className="flex items-center gap-2">
             <div className="w-3 h-3 bg-red-600 rounded-full"></div>
             <span>Critical Emergency</span>
